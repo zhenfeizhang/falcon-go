@@ -36,28 +36,28 @@
 void
 shake256_init(shake256_context *sc)
 {
-	inner_shake256_init((inner_shake256_context *)sc);
+	inner_prng_init((inner_prng_context *)sc);
 }
 
 /* see falcon.h */
 void
 shake256_inject(shake256_context *sc, const void *data, size_t len)
 {
-	inner_shake256_inject((inner_shake256_context *)sc, data, len);
+	inner_prng_inject((inner_prng_context *)sc, data, len);
 }
 
 /* see falcon.h */
 void
 shake256_flip(shake256_context *sc)
 {
-	inner_shake256_flip((inner_shake256_context *)sc);
+	inner_prng_flip((inner_prng_context *)sc);
 }
 
 /* see falcon.h */
 void
 shake256_extract(shake256_context *sc, void *out, size_t len)
 {
-	inner_shake256_extract((inner_shake256_context *)sc, out, len);
+	inner_prng_extract((inner_prng_context *)sc, out, len);
 }
 
 /* see falcon.h */
@@ -161,7 +161,7 @@ falcon_keygen_make(
 	F = g + n;
 	atmp = align_u64(F + n);
 	oldcw = set_fpu_cw(2);
-	Zf(keygen)((inner_shake256_context *)rng,
+	Zf(keygen)((inner_prng_context *)rng,
 		f, g, F, NULL, NULL, logn, atmp);
 	set_fpu_cw(oldcw);
 
@@ -339,7 +339,7 @@ falcon_sign_dyn_finish(shake256_context *rng,
 	uint8_t *atmp;
 	size_t u, v, n, es_len;
 	unsigned oldcw;
-	inner_shake256_context sav_hash_data;
+	inner_prng_context sav_hash_data;
 
 	/*
 	 * Get degree from private key header byte, and check
@@ -424,7 +424,7 @@ falcon_sign_dyn_finish(shake256_context *rng,
 	 * Hash message to a point.
 	 */
 	shake256_flip(hash_data);
-	sav_hash_data = *(inner_shake256_context *)hash_data;
+	sav_hash_data = *(inner_prng_context *)hash_data;
 
 	/*
 	 * Compute and encode signature.
@@ -437,18 +437,18 @@ falcon_sign_dyn_finish(shake256_context *rng,
 		 * we overwrite the hash output with the signature (in order
 		 * to save some RAM).
 		 */
-		*(inner_shake256_context *)hash_data = sav_hash_data;
+		*(inner_prng_context *)hash_data = sav_hash_data;
 		if (sig_type == FALCON_SIG_CT) {
 			Zf(hash_to_point_ct)(
-				(inner_shake256_context *)hash_data,
+				(inner_prng_context *)hash_data,
 				hm, logn, atmp);
 		} else {
 			Zf(hash_to_point_vartime)(
-				(inner_shake256_context *)hash_data,
+				(inner_prng_context *)hash_data,
 				hm, logn);
 		}
 		oldcw = set_fpu_cw(2);
-		Zf(sign_dyn)(sv, (inner_shake256_context *)rng,
+		Zf(sign_dyn)(sv, (inner_prng_context *)rng,
 			f, g, F, G, hm, logn, atmp);
 		set_fpu_cw(oldcw);
 		es = sig;
@@ -594,7 +594,7 @@ falcon_sign_tree_finish(shake256_context *rng,
 	uint8_t *atmp;
 	size_t u, v, n, es_len;
 	unsigned oldcw;
-	inner_shake256_context sav_hash_data;
+	inner_prng_context sav_hash_data;
 
 	/*
 	 * Get degree from private key header byte, and check
@@ -638,7 +638,7 @@ falcon_sign_tree_finish(shake256_context *rng,
 	 * Hash message to a point.
 	 */
 	shake256_flip(hash_data);
-	sav_hash_data = *(inner_shake256_context *)hash_data;
+	sav_hash_data = *(inner_prng_context *)hash_data;
 
 	/*
 	 * Compute and encode signature.
@@ -651,18 +651,18 @@ falcon_sign_tree_finish(shake256_context *rng,
 		 * we overwrite the hash output with the signature (in order
 		 * to save some RAM).
 		 */
-		*(inner_shake256_context *)hash_data = sav_hash_data;
+		*(inner_prng_context *)hash_data = sav_hash_data;
 		if (sig_type == FALCON_SIG_CT) {
 			Zf(hash_to_point_ct)(
-				(inner_shake256_context *)hash_data,
+				(inner_prng_context *)hash_data,
 				hm, logn, atmp);
 		} else {
 			Zf(hash_to_point_vartime)(
-				(inner_shake256_context *)hash_data,
+				(inner_prng_context *)hash_data,
 				hm, logn);
 		}
 		oldcw = set_fpu_cw(2);
-		Zf(sign_tree)(sv, (inner_shake256_context *)rng,
+		Zf(sign_tree)(sv, (inner_prng_context *)rng,
 			expkey, hm, logn, atmp);
 		set_fpu_cw(oldcw);
 		es = sig;
@@ -898,10 +898,10 @@ falcon_verify_finish(const void *sig, size_t sig_len, int sig_type,
 	shake256_flip(hash_data);
 	if (ct) {
 		Zf(hash_to_point_ct)(
-			(inner_shake256_context *)hash_data, hm, logn, atmp);
+			(inner_prng_context *)hash_data, hm, logn, atmp);
 	} else {
 		Zf(hash_to_point_vartime)(
-			(inner_shake256_context *)hash_data, hm, logn);
+			(inner_prng_context *)hash_data, hm, logn);
 	}
 
 	/*

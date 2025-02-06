@@ -3,7 +3,9 @@
 #include "inner.h"
 #include "keccak_tiny.h"
 
-int inner_keccak256_prng_init(inner_keccak256_prng_ctx *sc) {
+int inner_keccak256_init(inner_keccak256_prng_ctx *sc) {
+
+	printf("keccak256_init\n");
     if (!sc) return -1;
     
     memset(sc->buffer, 0, MAX_BUFFER_SIZE);
@@ -14,7 +16,7 @@ int inner_keccak256_prng_init(inner_keccak256_prng_ctx *sc) {
     return 0;
 }
 
-int inner_keccak256_prng_absorb(inner_keccak256_prng_ctx *sc, const uint8_t *in, size_t len) {
+int inner_keccak256_inject(inner_keccak256_prng_ctx *sc, const uint8_t *in, size_t len) {
     if (!sc || !in) return -1;
     if (sc->finalized) return -2;
 
@@ -29,7 +31,7 @@ int inner_keccak256_prng_absorb(inner_keccak256_prng_ctx *sc, const uint8_t *in,
     return 0;
 }
 
-int inner_keccak256_prng_finalize(inner_keccak256_prng_ctx *sc) {
+int inner_keccak256_flip(inner_keccak256_prng_ctx *sc) {
     if (!sc) return -1;
     if (sc->finalized) return -2;
 
@@ -48,7 +50,7 @@ int inner_keccak256_prng_finalize(inner_keccak256_prng_ctx *sc) {
     return 0;
 }
 
-int inner_keccak256_prng_squeeze(uint8_t *out, size_t len, inner_keccak256_prng_ctx *sc) {
+int inner_keccak256_extract(uint8_t *out, size_t len, inner_keccak256_prng_ctx *sc) {
     if (!sc || !out) return -1;
     if (!sc->finalized) return -2;
 
@@ -80,21 +82,4 @@ int inner_keccak256_prng_squeeze(uint8_t *out, size_t len, inner_keccak256_prng_
         sc->counter++;
     }
     return 0;
-}
-
-// Helper function to perform complete operation in one call
-int inner_keccak256_prng(uint8_t *out, size_t outlen, const uint8_t *in, size_t inlen) {
-    int ret;
-    inner_keccak256_prng_ctx sc;
-    
-    ret = inner_keccak256_prng_init(&sc);
-    if (ret != 0) return ret;
-    
-    ret = inner_keccak256_prng_absorb(&sc, in, inlen);
-    if (ret != 0) return ret;
-    
-    ret = inner_keccak256_prng_finalize(&sc);
-    if (ret != 0) return ret;
-    
-    return inner_keccak256_prng_squeeze(out, outlen, &sc);
 }

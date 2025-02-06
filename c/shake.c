@@ -1075,6 +1075,7 @@ process_block(uint64_t *A)
 void
 Zf(i_shake256_init)(inner_shake256_context *sc)
 {
+	printf("shake256_init\n");
 	sc->dptr = 0;
 
 	/*
@@ -1147,6 +1148,8 @@ Zf(i_shake256_flip)(inner_shake256_context *sc)
 void
 Zf(i_shake256_extract)(inner_shake256_context *sc, uint8_t *out, size_t len)
 {
+	printf("shake256_extract\n");
+
 	size_t dptr;
 
 	dptr = (size_t)sc->dptr;
@@ -1174,4 +1177,7 @@ Zf(i_shake256_extract)(inner_shake256_context *sc, uint8_t *out, size_t len)
 #endif  // yyyLE-
 	}
 	sc->dptr = dptr;
+
+	printf("shake256_finished\n");
+
 }

@@ -172,6 +172,27 @@
  */
 
 /*
+ * Use Keccak256-based PRNG implementation. The PRNG will use Keccak256
+ * in counter mode, with domain separation byte 0x1F. This implementation
+ * is designed specifically for environments like the Ethereum Virtual
+ * Machine (EVM) which only provides keccak256 as a primitive operation
+ * and does not have access to SHAKE256 or the underlying Keccak-f[1600]
+ * permutation.
+ *
+ * This implementation allows for SHAKE256-like functionality using only
+ * keccak256 calls, making it suitable for:
+ *   - EVM smart contracts where only keccak256 is available
+ *   - Systems where adding full SHAKE256 implementation is not feasible
+ *   - Environments where only basic hash primitives are exposed
+ *
+ * If neither FALCON_PRNG_KECCAK256 nor FALCON_PRNG_SHAKE256 is defined,
+ * then Keccak256 PRNG will be used as the default implementation unless
+ * specific platform requirements dictate otherwise.
+ *
+#define FALCON_PRNG_KECCAK256   1
+ */
+
+/*
  * Use an explicit OS-provided source of randomness for seeding (for the
  * Zf(get_seed)() function implementation). Three possible sources are
  * defined:

@@ -16,6 +16,7 @@
 
 CC = gcc
 CFLAGS = -Wall -Wextra -Wshadow -Wundef -O3 #-pg -fno-pie
+CFLAGS += -DFALCON_PRNG_KECCAK256=0 # uses keccak prng
 LD = gcc
 LDFLAGS = #-pg -no-pie
 LIBS = #-lm
@@ -24,10 +25,10 @@ LIBS = #-lm
 
 OBJ = codec.o common.o falcon.o fft.o fpr.o keygen.o rng.o shake.o sign.o vrfy.o keccak_prng.o keccak_tiny.o
 
-all: test_falcon speed test_keccak_prng
+all: test_falcon speed test_prng
 
 clean:
-	-rm -f $(OBJ) test_falcon test_falcon.o speed speed.o test_keccak_prng test_keccak_prng.o keccak_prng.o keccak_tiny.o
+	-rm -f $(OBJ) test_falcon test_falcon.o speed speed.o test_prng test_prng.o keccak_prng.o keccak_tiny.o
 
 test_falcon: test_falcon.o $(OBJ)
 	$(LD) $(LDFLAGS) -o test_falcon test_falcon.o $(OBJ) $(LIBS)
@@ -35,8 +36,8 @@ test_falcon: test_falcon.o $(OBJ)
 speed: speed.o $(OBJ)
 	$(LD) $(LDFLAGS) -o speed speed.o $(OBJ) $(LIBS)
 
-test_keccak_prng: test_keccak_prng.o keccak_prng.o keccak_tiny.o
-	$(LD) $(LDFLAGS) -o test_keccak_prng test_keccak_prng.o keccak_prng.o keccak_tiny.o $(LIBS)
+test_prng: test_prng.o keccak_prng.o keccak_tiny.o
+	$(LD) $(LDFLAGS) -o test_prng test_prng.o keccak_prng.o keccak_tiny.o shake.o $(LIBS)
 
 codec.o: codec.c config.h inner.h fpr.h
 	$(CC) $(CFLAGS) -c -o codec.o codec.c
@@ -80,5 +81,5 @@ keccak_prng.o: keccak_prng.c keccak_tiny.h
 keccak_tiny.o: keccak_tiny.c keccak_tiny.h
 	$(CC) $(CFLAGS) -c -o keccak_tiny.o keccak_tiny.c
 
-test_keccak_prng.o: test_keccak_prng.c keccak_tiny.h
-	$(CC) $(CFLAGS) -c -o test_keccak_prng.o test_keccak_prng.c
+test_prng.o: test_prng.c keccak_tiny.h
+	$(CC) $(CFLAGS) -c -o test_prng.o test_prng.c

@@ -117,10 +117,10 @@ Zf(get_seed)(void *seed, size_t len)
 
 /* see inner.h */
 void
-Zf(prng_init)(prng *p, inner_shake256_context *src)
+Zf(prng_init)(prng *p, inner_prng_context *src)
 {
 #if FALCON_LE  // yyyLE+1
-	inner_shake256_extract(src, p->state.d, 56);
+	inner_prng_extract(src, p->state.d, 56);
 #else  // yyyLE+0
 	/*
 	 * To ensure reproducibility for a given seed, we
@@ -131,7 +131,7 @@ Zf(prng_init)(prng *p, inner_shake256_context *src)
 	uint64_t th, tl;
 	int i;
 
-	inner_shake256_extract(src, tmp, 56);
+	inner_prng_extract(src, tmp, 56);
 	for (i = 0; i < 14; i ++) {
 		uint32_t w;
 

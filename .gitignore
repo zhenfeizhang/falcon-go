@@ -21,7 +21,7 @@ go.work
 # Falcon specific
 c/speed
 c/test_falcon
-c/test_keccak_prng
+c/test_prng
 examples/falcon-example
 
 # Binary folders
