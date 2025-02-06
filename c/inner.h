@@ -421,7 +421,7 @@ typedef struct {
 int inner_keccak256_init(inner_keccak256_prng_ctx *sc);
 int inner_keccak256_inject(inner_keccak256_prng_ctx *sc, const uint8_t *in, size_t len);
 int inner_keccak256_flip(inner_keccak256_prng_ctx *sc);
-int inner_keccak256_extract(uint8_t *out, size_t len, inner_keccak256_prng_ctx *sc);
+int inner_keccak256_extract(inner_keccak256_prng_ctx *sc, uint8_t *out, size_t len);
 
 /* ==================================================================== */
 /*
@@ -486,7 +486,7 @@ typedef inner_keccak256_prng_ctx inner_prng_context;
 #define inner_prng_init(sc)               inner_keccak256_init(sc)
 #define inner_prng_inject(sc, in, len)    inner_keccak256_inject(sc, in, len)
 #define inner_prng_flip(sc)           	  inner_keccak256_flip(sc)
-#define inner_prng_extract(out, len, sc)  inner_keccak256_extract(out, len, sc)
+#define inner_prng_extract(sc, out, len)  inner_keccak256_extract(sc, out, len)
 
 #else
 typedef inner_shake256_context inner_prng_context;
@@ -494,7 +494,7 @@ typedef inner_shake256_context inner_prng_context;
 #define inner_prng_init(sc)               Zf(i_shake256_init)(sc)
 #define inner_prng_inject(sc, in, len)    Zf(i_shake256_inject)(sc, in, len)
 #define inner_prng_flip(sc)           	  Zf(i_shake256_flip)(sc)
-#define inner_prng_extract(out, len, sc)  Zf(i_shake256_extract)(sc, out, len)
+#define inner_prng_extract(sc, out, len)  Zf(i_shake256_extract)(sc, out, len)
 
 #endif /* FALCON_PRNG_KECCAK256 */
 

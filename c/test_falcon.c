@@ -2474,20 +2474,10 @@ test_RNG(void)
 	printf("Test RNG: ");
 	fflush(stdout);
 
-	printf("inner_prng_init(&sc);1\n");
-	fflush(stdout);
 	inner_prng_init(&sc);
-	printf("inner_prng_init(&sc);2\n");
-	fflush(stdout);
 	inner_prng_inject(&sc, (const uint8_t *)"rng", 3);
-	printf("inner_prng_init(&sc);3\n");
-	fflush(stdout);
 	inner_prng_flip(&sc);	
-	printf("inner_prng_init(&sc);4\n");
-	fflush(stdout);
 	Zf(prng_init)(&p, &sc);	
-	printf("inner_prng_init(&sc);5\n");
-	fflush(stdout);
 	for (u = 0; u < (sizeof KAT_RNG_1) / sizeof(KAT_RNG_1[0]); u ++) {
 		if (KAT_RNG_1[u] != prng_get_u64(&p)) {
 			fprintf(stderr, "ERR KAT_RNG_1(%zu)\n", u);
@@ -5020,9 +5010,9 @@ main(void)
 
 	old = set_fpu_cw(2);
 
-	// test_SHAKE256();
-	// test_codec();
-	// test_vrfy();
+	test_SHAKE256();
+	test_codec();
+	test_vrfy();
 	test_RNG();
 	test_FP_block();
 	test_poly();

@@ -35,13 +35,13 @@ void test_unified_basic_functionality() {
     inner_prng_init(&ctx);
     inner_prng_inject(&ctx, input, strlen((char*)input));
     inner_prng_flip(&ctx);
-    inner_prng_extract(output1, 32, &ctx);
+    inner_prng_extract(&ctx, output1, 32);
     
     inner_prng_context ctx2;
     inner_prng_init(&ctx2);
     inner_prng_inject(&ctx2, input, strlen((char*)input));
     inner_prng_flip(&ctx2);
-    inner_prng_extract(output2, 32, &ctx2);
+    inner_prng_extract(&ctx2, output2, 32);
     
     printf("Output 1: ");
     print_hex(output1, 32);
@@ -63,8 +63,8 @@ void test_unified_different_lengths() {
     inner_prng_init(&ctx);
     inner_prng_inject(&ctx, input, strlen((char*)input));
     inner_prng_flip(&ctx);
-    inner_prng_extract(output32, 32, &ctx);
-    inner_prng_extract(output64, 64, &ctx);
+    inner_prng_extract(&ctx, output32, 32);
+    inner_prng_extract(&ctx,  output64, 64);
     
     printf("32-byte output: ");
     print_hex(output32, 32);
@@ -88,14 +88,14 @@ void test_unified_incremental_injection() {
     inner_prng_init(&ctx1);
     inner_prng_inject(&ctx1, (uint8_t*)"testinput", 9);
     inner_prng_flip(&ctx1);
-    inner_prng_extract(output1, 32, &ctx1);
+    inner_prng_extract(&ctx1, output1, 32);
     
     // Inject incrementally
     inner_prng_init(&ctx2);
     inner_prng_inject(&ctx2, input1, 4);
     inner_prng_inject(&ctx2, input2, 5);
     inner_prng_flip(&ctx2);
-    inner_prng_extract(output2, 32, &ctx2);
+    inner_prng_extract(&ctx2, output2, 32);
     
     printf("Single injection output: ");
     print_hex(output1, 32);
@@ -119,9 +119,9 @@ void test_unified_sequence() {
     inner_prng_inject(&ctx, input, strlen((char*)input));
     inner_prng_flip(&ctx);
     
-    inner_prng_extract(output1, 16, &ctx);
-    inner_prng_extract(output2, 16, &ctx);
-    inner_prng_extract(output3, 16, &ctx);
+    inner_prng_extract(&ctx, output1, 16);
+    inner_prng_extract(&ctx, output2, 16);
+    inner_prng_extract(&ctx, output3, 16);
     
     printf("Sequence 1: ");
     print_hex(output1, 16);

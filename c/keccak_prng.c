@@ -4,8 +4,6 @@
 #include "keccak_tiny.h"
 
 int inner_keccak256_init(inner_keccak256_prng_ctx *sc) {
-
-	printf("keccak256_init\n");
     if (!sc) return -1;
     
     memset(sc->buffer, 0, MAX_BUFFER_SIZE);
@@ -50,7 +48,7 @@ int inner_keccak256_flip(inner_keccak256_prng_ctx *sc) {
     return 0;
 }
 
-int inner_keccak256_extract(uint8_t *out, size_t len, inner_keccak256_prng_ctx *sc) {
+int inner_keccak256_extract(inner_keccak256_prng_ctx *sc, uint8_t *out, size_t len) {
     if (!sc || !out) return -1;
     if (!sc->finalized) return -2;
 
