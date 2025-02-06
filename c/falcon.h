@@ -388,7 +388,7 @@ extern "C" {
 
 /* ==================================================================== */
 /*
- * SHAKE256.
+ * prng. Instantiated with either SHAKE256 or Keccak256.
  */
 
 /*
@@ -398,59 +398,73 @@ extern "C" {
  * caller is responsible for allocating the context structure itself,
  * typically on the stack.
  */
+#ifndef FALCON_PRNG_KECCAK256
+// inner_prng_context struct uses 26 bytes
 typedef struct {
 	uint64_t opaque_contents[26];
-} shake256_context;
+} prng_context;
+#else
+// inner_keccak256_prng_ctx struct uses 135 bytes
+typedef struct {
+	uint64_t opaque_contents[135];
+} prng_context;
+#endif
 
 /*
- * Initialize a SHAKE256 context to its initial state. The state is
- * then ready to receive data (with shake256_inject()).
+ * Get the type of PRNG used by this implementation.
+ * Returned value is 0 for SHAKE256, 1 for Keccak256.
  */
-void shake256_init(shake256_context *sc);
+int prng_type();
 
 /*
- * Inject some data bytes into the SHAKE256 context ("absorb" operation).
+ * Initialize a prng context to its initial state. The state is
+ * then ready to receive data (with prng_inject()).
+ */
+void prng_init(prng_context *sc);
+
+/*
+ * Inject some data bytes into the prng context ("absorb" operation).
  * This function can be called several times, to inject several chunks
  * of data of arbitrary length.
  */
-void shake256_inject(shake256_context *sc, const void *data, size_t len);
+void prng_inject(prng_context *sc, const void *data, size_t len);
 
 /*
- * Flip the SHAKE256 state to output mode. After this call, shake256_inject()
- * can no longer be called on the context, but shake256_extract() can be
+ * Flip the prng state to output mode. After this call, prng_inject()
+ * can no longer be called on the context, but prng_extract() can be
  * called.
  *
  * Flipping is one-way; a given context can be converted back to input
  * mode only by initializing it again, which forgets all previously
  * injected data.
  */
-void shake256_flip(shake256_context *sc);
+void prng_flip(prng_context *sc);
 
 /*
- * Extract bytes from the SHAKE256 context ("squeeze" operation). The
- * context must have been flipped to output mode (with shake256_flip()).
+ * Extract bytes from the prng context ("squeeze" operation). The
+ * context must have been flipped to output mode (with prng_flip()).
  * Arbitrary amounts of data can be extracted, in one or several calls
  * to this function.
  */
-void shake256_extract(shake256_context *sc, void *out, size_t len);
+void prng_extract(prng_context *sc, void *out, size_t len);
 
 /*
- * Initialize a SHAKE256 context as a PRNG from the provided seed.
+ * Initialize a prng context as a PRNG from the provided seed.
  * This initializes the context, injects the seed, then flips the context
  * to output mode to make it ready to produce bytes.
  */
-void shake256_init_prng_from_seed(shake256_context *sc,
+void prng_init_prng_from_seed(prng_context *sc,
 	const void *seed, size_t seed_len);
 
 /*
- * Initialize a SHAKE256 context as a PRNG, using an initial seed from
+ * Initialize a prng context as a PRNG, using an initial seed from
  * the OS-provided RNG. If there is no known/supported OS-provided RNG,
  * or if that RNG fails, then the context is not properly initialized
  * and FALCON_ERR_RANDOM is returned.
  *
  * Returned value: 0 on success, or a negative error code.
  */
-int shake256_init_prng_from_system(shake256_context *sc);
+int prng_init_prng_from_system(prng_context *sc);
 
 /* ==================================================================== */
 /*
@@ -465,9 +479,9 @@ int shake256_init_prng_from_system(shake256_context *sc);
  * not provide adequate security and are meant for research purposes
  * only.
  *
- * The source of randomness is the provided SHAKE256 context *rng, which
+ * The source of randomness is the provided prng context *rng, which
  * must have been already initialized, seeded, and set to output mode (see
- * shake256_init_prng_from_seed() and shake256_init_prng_from_system()).
+ * prng_init_prng_from_seed() and prng_init_prng_from_system()).
  *
  * The new private key is written in the buffer pointed to by privkey.
  * The size of that buffer must be specified in privkey_len; if that
@@ -492,7 +506,7 @@ int shake256_init_prng_from_system(shake256_context *sc);
  * Returned value: 0 on success, or a negative error code.
  */
 int falcon_keygen_make(
-	shake256_context *rng,
+	prng_context *rng,
 	unsigned logn,
 	void *privkey, size_t privkey_len,
 	void *pubkey, size_t pubkey_len,
@@ -538,9 +552,9 @@ int falcon_get_logn(void *obj, size_t len);
  * Sign the data provided in buffer data[] (of length data_len bytes),
  * using the private key held in privkey[] (of length privkey_len bytes).
  *
- * The source of randomness is the provided SHAKE256 context *rng, which
+ * The source of randomness is the provided prng context *rng, which
  * must have been already initialized, seeded, and set to output mode (see
- * shake256_init_prng_from_seed() and shake256_init_prng_from_system()).
+ * prng_init_prng_from_seed() and prng_init_prng_from_system()).
  *
  * The signature is written in sig[]. The caller must set *sig_len to
  * the maximum size of sig[]; if the signature computation is
@@ -562,7 +576,7 @@ int falcon_get_logn(void *obj, size_t len);
  *
  * Returned value: 0 on success, or a negative error code.
  */
-int falcon_sign_dyn(shake256_context *rng,
+int falcon_sign_dyn(prng_context *rng,
 	void *sig, size_t *sig_len, int sig_type,
 	const void *privkey, size_t privkey_len,
 	const void *data, size_t data_len,
@@ -593,9 +607,9 @@ int falcon_expand_privkey(void *expanded_key, size_t expanded_key_len,
  * using the expanded private key held in expanded_key[], as generated
  * by falcon_expand_privkey().
  *
- * The source of randomness is the provided SHAKE256 context *rng, which
+ * The source of randomness is the provided prng context *rng, which
  * must have been already initialized, seeded, and set to output mode (see
- * shake256_init_prng_from_seed() and shake256_init_prng_from_system()).
+ * prng_init_prng_from_seed() and prng_init_prng_from_system()).
  *
  * The signature is written in sig[]. The caller must set *sig_len to
  * the maximum size of sig[]; if the signature computation is
@@ -617,7 +631,7 @@ int falcon_expand_privkey(void *expanded_key, size_t expanded_key_len,
  *
  * Returned value: 0 on success, or a negative error code.
  */
-int falcon_sign_tree(shake256_context *rng,
+int falcon_sign_tree(prng_context *rng,
 	void *sig, size_t *sig_len, int sig_type,
 	const void *expanded_key,
 	const void *data, size_t data_len,
@@ -630,8 +644,8 @@ int falcon_sign_tree(shake256_context *rng,
  * In the streamed API, the caller performs the data hashing externally.
  * An initialization function (falcon_sign_start()) is first called; it
  * generates and returns a random 40-byte nonce value; it also initializes
- * a SHAKE256 context and injects the nonce value in that context. The
- * caller must then inject the data to sign in the SHAKE256 context, and
+ * a prng context and injects the nonce value in that context. The
+ * caller must then inject the data to sign in the prng context, and
  * finally call falcon_sign_dyn_finish() or falcon_sign_tree_finish() to
  * finalize the signature generation.
  */
@@ -642,20 +656,20 @@ int falcon_sign_tree(shake256_context *rng,
  * A 40-byte nonce is generated and written in nonce[]. The *hash_data
  * context is also initialized, and the nonce is injected in that context.
  *
- * The source of randomness is the provided SHAKE256 context *rng, which
+ * The source of randomness is the provided prng context *rng, which
  * must have been already initialized, seeded, and set to output mode (see
- * shake256_init_prng_from_seed() and shake256_init_prng_from_system()).
+ * prng_init_prng_from_seed() and prng_init_prng_from_system()).
  *
  * Returned value: 0 on success, or a negative error code.
  */
-int falcon_sign_start(shake256_context *rng,
+int falcon_sign_start(prng_context *rng,
 	void *nonce,
-	shake256_context *hash_data);
+	prng_context *hash_data);
 
 /*
  * Finish a signature generation operation, using the private key held
  * in privkey[] (of length privkey_len bytes). The hashed nonce + message
- * is provided as the SHAKE256 context *hash_data, which must still be
+ * is provided as the prng context *hash_data, which must still be
  * in input mode (i.e. not yet flipped to output mode). That context is
  * modified in the process.
  *
@@ -663,9 +677,9 @@ int falcon_sign_start(shake256_context *rng,
  * usually as part of a falcon_sign_start() call) must be provided again,
  * because it is encoded into the signature. The nonce length is 40 bytes.
  *
- * The source of randomness is the provided SHAKE256 context *rng, which
+ * The source of randomness is the provided prng context *rng, which
  * must have been already initialized, seeded, and set to output mode (see
- * shake256_init_prng_from_seed() and shake256_init_prng_from_system()).
+ * prng_init_prng_from_seed() and prng_init_prng_from_system()).
  *
  * The signature is written in sig[]. The caller must set *sig_len to
  * the maximum size of sig[]; if the signature computation is
@@ -687,17 +701,17 @@ int falcon_sign_start(shake256_context *rng,
  *
  * Returned value: 0 on success, or a negative error code.
  */
-int falcon_sign_dyn_finish(shake256_context *rng,
+int falcon_sign_dyn_finish(prng_context *rng,
 	void *sig, size_t *sig_len, int sig_type,
 	const void *privkey, size_t privkey_len,
-	shake256_context *hash_data, const void *nonce,
+	prng_context *hash_data, const void *nonce,
 	void *tmp, size_t tmp_len);
 
 /*
  * Finish a signature generation operation, using the expanded private
  * key held in expanded_key[] (as obtained from
  * falcon_expand_privkey()). The hashed nonce + message is provided as
- * the SHAKE256 context *hash_data, which must still be in input mode
+ * the prng context *hash_data, which must still be in input mode
  * (i.e. not yet flipped to output mode). That context is modified in
  * the process.
  *
@@ -705,9 +719,9 @@ int falcon_sign_dyn_finish(shake256_context *rng,
  * usually as part of a falcon_sign_start() call) must be provided again,
  * because it is encoded into the signature. The nonce length is 40 bytes.
  *
- * The source of randomness is the provided SHAKE256 context *rng, which
+ * The source of randomness is the provided prng context *rng, which
  * must have been already initialized, seeded, and set to output mode (see
- * shake256_init_prng_from_seed() and shake256_init_prng_from_system()).
+ * prng_init_prng_from_seed() and prng_init_prng_from_system()).
  *
  * The signature is written in sig[]. The caller must set *sig_len to
  * the maximum size of sig[]; if the signature computation is
@@ -729,10 +743,10 @@ int falcon_sign_dyn_finish(shake256_context *rng,
  *
  * Returned value: 0 on success, or a negative error code.
  */
-int falcon_sign_tree_finish(shake256_context *rng,
+int falcon_sign_tree_finish(prng_context *rng,
 	void *sig, size_t *sig_len, int sig_type,
 	const void *expanded_key,
-	shake256_context *hash_data, const void *nonce,
+	prng_context *hash_data, const void *nonce,
 	void *tmp, size_t tmp_len);
 
 /* ==================================================================== */
@@ -763,22 +777,22 @@ int falcon_verify(const void *sig, size_t sig_len, int sig_type,
 	void *tmp, size_t tmp_len);
 
 /*
- * Start a streamed signature verification. The provided SHAKE256 context
+ * Start a streamed signature verification. The provided prng context
  * *hash_data is initialized, and the nonce value (extracted from the
  * signature) is injected into it. The caller shall then inject the
- * message data into the SHAKE256 context, and finally call
+ * message data into the prng context, and finally call
  * falcon_verify_finish().
  *
  * Returned value: 0 on success, or a negative error code.
  */
-int falcon_verify_start(shake256_context *hash_data,
+int falcon_verify_start(prng_context *hash_data,
 	const void *sig, size_t sig_len);
 
 /*
  * Finish a streamed signature verification. The signature sig[] (of
  * length sig_len bytes) is verified against the provided public key
  * pubkey[] (of length pubkey_len bytes) and the hashed message. The
- * hashed message is provided as a SHAKE256 context *hash_data;
+ * hashed message is provided as a prng context *hash_data;
  * that context must have received the nonce and the message itself
  * (usually, the context is initialized and the nonce injected as
  * part of a falcon_verify_start() call), and still be in input
@@ -799,7 +813,7 @@ int falcon_verify_start(shake256_context *hash_data,
  */
 int falcon_verify_finish(const void *sig, size_t sig_len, int sig_type,
 	const void *pubkey, size_t pubkey_len,
-	shake256_context *hash_data,
+	prng_context *hash_data,
 	void *tmp, size_t tmp_len);
 
 /* ==================================================================== */

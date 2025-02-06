@@ -18,13 +18,13 @@ C_OBJECTS=codec.o common.o falcon.o fft.o fpr.o keygen.o rng.o shake.o sign.o vr
 
 # Benchmark parameters
 BENCH_TIME?=2s
-BENCH_COUNT?=5
+BENCH_COUNT?=1
 
 # Ensure CGo is enabled
 export CGO_ENABLED=1
 export CC
 
-.PHONY: all clean falcon test test_c test_go build bench_go bench_c run example
+.PHONY: all clean falcon test test_c test_go build bench bench_go bench_go_shake bench_go_keccak bench_c run example
 
 all: falcon example test
 
@@ -47,18 +47,30 @@ test_c: falcon
 # Run Go tests
 test_go: falcon
 	@echo "Running Go tests..."
-	CGO_CFLAGS="-I$(FALCON_C_DIR)" \
+	CGO_CFLAGS="-I$(FALCON_C_DIR) -DFALCON_PRNG_KECCAK256=1" \
 	$(GOTEST) ./falcon/...
 
 # Run all tests
 test: test_c test_go
 	@echo "All tests completed."
 
-# Run Go benchmarks
-bench_go: falcon
-	@echo "Running Go Falcon benchmarks..."
-	CGO_CFLAGS="-I$(FALCON_C_DIR)" \
+# Run Go benchmarks with SHAKE256 PRNG
+bench_go_shake: falcon
+	@echo "Running Go Falcon benchmarks with SHAKE256 PRNG..."
+	CGO_CFLAGS="-I$(FALCON_C_DIR) -DFALCON_PRNG_KECCAK256=0" \
 	$(GOBENCH) -benchtime=$(BENCH_TIME) -count=$(BENCH_COUNT) -benchmem ./falcon/...
+
+# Run Go benchmarks with Keccak256 PRNG
+bench_go_keccak: falcon
+	@echo "Running Go Falcon benchmarks with Keccak256 PRNG..."
+	CGO_CFLAGS="-I$(FALCON_C_DIR) -DFALCON_PRNG_KECCAK256=1" \
+	$(GOBENCH) -benchtime=$(BENCH_TIME) -count=$(BENCH_COUNT) -benchmem ./falcon/...
+
+# Run all Go benchmarks
+bench_go: bench_go_shake bench_go_keccak
+
+# Run all benchmarks
+bench: bench_go bench_c
 
 # Build and run C benchmarks
 bench_c: falcon

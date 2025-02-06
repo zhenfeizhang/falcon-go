@@ -3810,7 +3810,7 @@ test_keygen(void)
 }
 
 static void
-test_external_API_inner(unsigned logn, shake256_context *rng)
+test_external_API_inner(unsigned logn, prng_context *rng)
 {
 	int i;
 	void *pubkey, *pubkey2, *privkey, *sig, *sigpad, *sigct, *expkey;
@@ -4079,12 +4079,12 @@ static void
 test_external_API(void)
 {
 	unsigned logn;
-	shake256_context rng;
+	prng_context rng;
 
 	printf("Test external API: ");
 	fflush(stdout);
 
-	shake256_init_prng_from_seed(&rng, "external", 8);
+	prng_init_prng_from_seed(&rng, "external", 8);
 	for (logn = 1; logn <= 10; logn ++) {
 		test_external_API_inner(logn, &rng);
 	}
@@ -5023,6 +5023,7 @@ main(void)
 	test_external_API();
 	test_nist_KAT(9, "a57400cbaee7109358859a56c735a3cf048a9da2");
 	test_nist_KAT(10, "affdeb3aa83bf9a2039fa9c17d65fd3e3b9828e2");
+
 	/* test_speed(); */
 
 	set_fpu_cw(old);

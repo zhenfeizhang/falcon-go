@@ -132,8 +132,8 @@ func GenerateKeyPair(logN uint) (*KeyPair, error) {
 	pubKey := make([]byte, pubKeySize)
 	tmp := make([]byte, tmpSize)
 
-	// Initialize SHAKE256 for RNG
-	rng := &Shake256Context{}
+	// Initialize PRNG
+	rng := &PRNGContext{}
 	if err := rng.InitFromSystem(); err != nil {
 		return nil, fmt.Errorf("failed to initialize RNG: %w", err)
 	}
@@ -169,7 +169,6 @@ func Sign(message, privateKey []byte, sigType int) ([]byte, error) {
 	// Calculate maximum buffer size based on signature type
 	switch sigType {
 	case SigCompressed:
-		// Add some buffer space to account for potential fluctuations
 		sigSize = sigCompressedMaxSize(uint(logN))
 	case SigPadded:
 		sigSize = sigPaddedSize(uint(logN))
@@ -181,17 +180,16 @@ func Sign(message, privateKey []byte, sigType int) ([]byte, error) {
 
 	// Create buffers
 	signature := make([]byte, sigSize)
-	sigLen = C.size_t(sigSize) // Initialize sigLen with buffer size
+	sigLen = C.size_t(sigSize)
 	tmpSize := tmpSizeSignDyn(uint(logN))
 	tmp := make([]byte, tmpSize)
 
-	// Initialize SHAKE256 for RNG
-	rng := &Shake256Context{}
+	// Initialize PRNG
+	rng := &PRNGContext{}
 	if err := rng.InitFromSystem(); err != nil {
 		return nil, fmt.Errorf("failed to initialize RNG: %w", err)
 	}
 
-	// Try to sign
 	result := C.falcon_sign_dyn(
 		&rng.ctx,
 		unsafe.Pointer(&signature[0]), &sigLen, C.int(sigType),
@@ -204,7 +202,6 @@ func Sign(message, privateKey []byte, sigType int) ([]byte, error) {
 		return nil, falconError(result)
 	}
 
-	// Return only the actual signature length
 	return signature[:sigLen], nil
 }
 
@@ -232,38 +229,38 @@ func Verify(signature, message, publicKey []byte, sigType int) error {
 	return nil
 }
 
-// Shake256Context wraps the C shake256_context struct
-type Shake256Context struct {
-	ctx C.shake256_context
+// PRNGContext wraps the C prng_context struct
+type PRNGContext struct {
+	ctx C.prng_context
 }
 
-// Shake256Context SHAKE256 context methods
-func (s *Shake256Context) Init() {
-	C.shake256_init(&s.ctx)
+// PRNGContext methods
+func (p *PRNGContext) Init() {
+	C.prng_init(&p.ctx)
 }
 
-func (s *Shake256Context) InitFromSystem() error {
-	result := C.shake256_init_prng_from_system(&s.ctx)
+func (p *PRNGContext) InitFromSystem() error {
+	result := C.prng_init_prng_from_system(&p.ctx)
 	if result != 0 {
 		return falconError(result)
 	}
 	return nil
 }
 
-func (s *Shake256Context) InitFromSeed(seed []byte) {
-	C.shake256_init_prng_from_seed(&s.ctx, unsafe.Pointer(&seed[0]), C.size_t(len(seed)))
+func (p *PRNGContext) InitFromSeed(seed []byte) {
+	C.prng_init_prng_from_seed(&p.ctx, unsafe.Pointer(&seed[0]), C.size_t(len(seed)))
 }
 
-func (s *Shake256Context) Inject(data []byte) {
-	C.shake256_inject(&s.ctx, unsafe.Pointer(&data[0]), C.size_t(len(data)))
+func (p *PRNGContext) Inject(data []byte) {
+	C.prng_inject(&p.ctx, unsafe.Pointer(&data[0]), C.size_t(len(data)))
 }
 
-func (s *Shake256Context) Flip() {
-	C.shake256_flip(&s.ctx)
+func (p *PRNGContext) Flip() {
+	C.prng_flip(&p.ctx)
 }
 
-func (s *Shake256Context) Extract(out []byte) {
-	C.shake256_extract(&s.ctx, unsafe.Pointer(&out[0]), C.size_t(len(out)))
+func (p *PRNGContext) Extract(out []byte) {
+	C.prng_extract(&p.ctx, unsafe.Pointer(&out[0]), C.size_t(len(out)))
 }
 
 // Helper function to convert Falcon error codes to Go errors
@@ -284,4 +281,12 @@ func falconError(code C.int) error {
 	default:
 		return fmt.Errorf("unknown error: %d", code)
 	}
+}
+
+// Helper function to get PRNG implementation name
+func getPRNGName() string {
+	if C.prng_type() == 1 {
+		return "Keccak256"
+	}
+	return "SHAKE256"
 }
