@@ -33,53 +33,63 @@
 #include "inner.h"
 
 /* see falcon.h */
+int prng_type() {
+	#if FALCON_PRNG_KECCAK256
+    return 1;
+    #else
+    return 0;
+    #endif
+}
+
+
+/* see falcon.h */
 void
-shake256_init(shake256_context *sc)
+prng_init(prng_context *sc)
 {
-	inner_shake256_init((inner_shake256_context *)sc);
+	inner_prng_init((inner_prng_context *)sc);
 }
 
 /* see falcon.h */
 void
-shake256_inject(shake256_context *sc, const void *data, size_t len)
+prng_inject(prng_context *sc, const void *data, size_t len)
 {
-	inner_shake256_inject((inner_shake256_context *)sc, data, len);
+	inner_prng_inject((inner_prng_context *)sc, data, len);
 }
 
 /* see falcon.h */
 void
-shake256_flip(shake256_context *sc)
+prng_flip(prng_context *sc)
 {
-	inner_shake256_flip((inner_shake256_context *)sc);
+	inner_prng_flip((inner_prng_context *)sc);
 }
 
 /* see falcon.h */
 void
-shake256_extract(shake256_context *sc, void *out, size_t len)
+prng_extract(prng_context *sc, void *out, size_t len)
 {
-	inner_shake256_extract((inner_shake256_context *)sc, out, len);
+	inner_prng_extract((inner_prng_context *)sc, out, len);
 }
 
 /* see falcon.h */
 void
-shake256_init_prng_from_seed(shake256_context *sc,
+prng_init_prng_from_seed(prng_context *sc,
 	const void *seed, size_t seed_len)
 {
-	shake256_init(sc);
-	shake256_inject(sc, seed, seed_len);
+	prng_init(sc);
+	prng_inject(sc, seed, seed_len);
 }
 
 /* see falcon.h */
 int
-shake256_init_prng_from_system(shake256_context *sc)
+prng_init_prng_from_system(prng_context *sc)
 {
 	uint8_t seed[48];
 
 	if (!Zf(get_seed)(seed, sizeof seed)) {
 		return FALCON_ERR_RANDOM;
 	}
-	shake256_init(sc);
-	shake256_inject(sc, seed, sizeof seed);
+	prng_init(sc);
+	prng_inject(sc, seed, sizeof seed);
 	return 0;
 }
 
@@ -126,7 +136,7 @@ align_fpr(void *tmp)
 /* see falcon.h */
 int
 falcon_keygen_make(
-	shake256_context *rng,
+	prng_context *rng,
 	unsigned logn,
 	void *privkey, size_t privkey_len,
 	void *pubkey, size_t pubkey_len,
@@ -161,7 +171,7 @@ falcon_keygen_make(
 	F = g + n;
 	atmp = align_u64(F + n);
 	oldcw = set_fpu_cw(2);
-	Zf(keygen)((inner_shake256_context *)rng,
+	Zf(keygen)((inner_prng_context *)rng,
 		f, g, F, NULL, NULL, logn, atmp);
 	set_fpu_cw(oldcw);
 
@@ -312,22 +322,22 @@ falcon_get_logn(void *obj, size_t len)
 
 /* see falcon.h */
 int
-falcon_sign_start(shake256_context *rng,
+falcon_sign_start(prng_context *rng,
 	void *nonce,
-	shake256_context *hash_data)
+	prng_context *hash_data)
 {
-	shake256_extract(rng, nonce, 40);
-	shake256_init(hash_data);
-	shake256_inject(hash_data, nonce, 40);
+	prng_extract(rng, nonce, 40);
+	prng_init(hash_data);
+	prng_inject(hash_data, nonce, 40);
 	return 0;
 }
 
 /* see falcon.h */
 int
-falcon_sign_dyn_finish(shake256_context *rng,
+falcon_sign_dyn_finish(prng_context *rng,
 	void *sig, size_t *sig_len, int sig_type,
 	const void *privkey, size_t privkey_len,
-	shake256_context *hash_data, const void *nonce,
+	prng_context *hash_data, const void *nonce,
 	void *tmp, size_t tmp_len)
 {
 	unsigned logn;
@@ -339,7 +349,7 @@ falcon_sign_dyn_finish(shake256_context *rng,
 	uint8_t *atmp;
 	size_t u, v, n, es_len;
 	unsigned oldcw;
-	inner_shake256_context sav_hash_data;
+	inner_prng_context sav_hash_data;
 
 	/*
 	 * Get degree from private key header byte, and check
@@ -423,8 +433,8 @@ falcon_sign_dyn_finish(shake256_context *rng,
 	/*
 	 * Hash message to a point.
 	 */
-	shake256_flip(hash_data);
-	sav_hash_data = *(inner_shake256_context *)hash_data;
+	prng_flip(hash_data);
+	sav_hash_data = *(inner_prng_context *)hash_data;
 
 	/*
 	 * Compute and encode signature.
@@ -437,18 +447,18 @@ falcon_sign_dyn_finish(shake256_context *rng,
 		 * we overwrite the hash output with the signature (in order
 		 * to save some RAM).
 		 */
-		*(inner_shake256_context *)hash_data = sav_hash_data;
+		*(inner_prng_context *)hash_data = sav_hash_data;
 		if (sig_type == FALCON_SIG_CT) {
 			Zf(hash_to_point_ct)(
-				(inner_shake256_context *)hash_data,
+				(inner_prng_context *)hash_data,
 				hm, logn, atmp);
 		} else {
 			Zf(hash_to_point_vartime)(
-				(inner_shake256_context *)hash_data,
+				(inner_prng_context *)hash_data,
 				hm, logn);
 		}
 		oldcw = set_fpu_cw(2);
-		Zf(sign_dyn)(sv, (inner_shake256_context *)rng,
+		Zf(sign_dyn)(sv, (inner_prng_context *)rng,
 			f, g, F, G, hm, logn, atmp);
 		set_fpu_cw(oldcw);
 		es = sig;
@@ -580,10 +590,10 @@ falcon_expand_privkey(void *expanded_key, size_t expanded_key_len,
 
 /* see falcon.h */
 int
-falcon_sign_tree_finish(shake256_context *rng,
+falcon_sign_tree_finish(prng_context *rng,
 	void *sig, size_t *sig_len, int sig_type,
 	const void *expanded_key,
-	shake256_context *hash_data, const void *nonce,
+	prng_context *hash_data, const void *nonce,
 	void *tmp, size_t tmp_len)
 {
 	unsigned logn;
@@ -594,7 +604,7 @@ falcon_sign_tree_finish(shake256_context *rng,
 	uint8_t *atmp;
 	size_t u, v, n, es_len;
 	unsigned oldcw;
-	inner_shake256_context sav_hash_data;
+	inner_prng_context sav_hash_data;
 
 	/*
 	 * Get degree from private key header byte, and check
@@ -637,8 +647,8 @@ falcon_sign_tree_finish(shake256_context *rng,
 	/*
 	 * Hash message to a point.
 	 */
-	shake256_flip(hash_data);
-	sav_hash_data = *(inner_shake256_context *)hash_data;
+	prng_flip(hash_data);
+	sav_hash_data = *(inner_prng_context *)hash_data;
 
 	/*
 	 * Compute and encode signature.
@@ -651,18 +661,18 @@ falcon_sign_tree_finish(shake256_context *rng,
 		 * we overwrite the hash output with the signature (in order
 		 * to save some RAM).
 		 */
-		*(inner_shake256_context *)hash_data = sav_hash_data;
+		*(inner_prng_context *)hash_data = sav_hash_data;
 		if (sig_type == FALCON_SIG_CT) {
 			Zf(hash_to_point_ct)(
-				(inner_shake256_context *)hash_data,
+				(inner_prng_context *)hash_data,
 				hm, logn, atmp);
 		} else {
 			Zf(hash_to_point_vartime)(
-				(inner_shake256_context *)hash_data,
+				(inner_prng_context *)hash_data,
 				hm, logn);
 		}
 		oldcw = set_fpu_cw(2);
-		Zf(sign_tree)(sv, (inner_shake256_context *)rng,
+		Zf(sign_tree)(sv, (inner_prng_context *)rng,
 			expkey, hm, logn, atmp);
 		set_fpu_cw(oldcw);
 		es = sig;
@@ -710,13 +720,13 @@ falcon_sign_tree_finish(shake256_context *rng,
 
 /* see falcon.h */
 int
-falcon_sign_dyn(shake256_context *rng,
+falcon_sign_dyn(prng_context *rng,
 	void *sig, size_t *sig_len, int sig_type,
 	const void *privkey, size_t privkey_len,
 	const void *data, size_t data_len,
 	void *tmp, size_t tmp_len)
 {
-	shake256_context hd;
+	prng_context hd;
 	uint8_t nonce[40];
 	int r;
 
@@ -724,20 +734,20 @@ falcon_sign_dyn(shake256_context *rng,
 	if (r != 0) {
 		return r;
 	}
-	shake256_inject(&hd, data, data_len);
+	prng_inject(&hd, data, data_len);
 	return falcon_sign_dyn_finish(rng, sig, sig_len, sig_type,
 		privkey, privkey_len, &hd, nonce, tmp, tmp_len);
 }
 
 /* see falcon.h */
 int
-falcon_sign_tree(shake256_context *rng,
+falcon_sign_tree(prng_context *rng,
 	void *sig, size_t *sig_len, int sig_type,
 	const void *expanded_key,
 	const void *data, size_t data_len,
 	void *tmp, size_t tmp_len)
 {
-	shake256_context hd;
+	prng_context hd;
 	uint8_t nonce[40];
 	int r;
 
@@ -745,21 +755,21 @@ falcon_sign_tree(shake256_context *rng,
 	if (r != 0) {
 		return r;
 	}
-	shake256_inject(&hd, data, data_len);
+	prng_inject(&hd, data, data_len);
 	return falcon_sign_tree_finish(rng, sig, sig_len, sig_type,
 		expanded_key, &hd, nonce, tmp, tmp_len);
 }
 
 /* see falcon.h */
 int
-falcon_verify_start(shake256_context *hash_data,
+falcon_verify_start(prng_context *hash_data,
 	const void *sig, size_t sig_len)
 {
 	if (sig_len < 41) {
 		return FALCON_ERR_FORMAT;
 	}
-	shake256_init(hash_data);
-	shake256_inject(hash_data, (const uint8_t *)sig + 1, 40);
+	prng_init(hash_data);
+	prng_inject(hash_data, (const uint8_t *)sig + 1, 40);
 	return 0;
 }
 
@@ -767,7 +777,7 @@ falcon_verify_start(shake256_context *hash_data,
 int
 falcon_verify_finish(const void *sig, size_t sig_len, int sig_type,
 	const void *pubkey, size_t pubkey_len,
-	shake256_context *hash_data,
+	prng_context *hash_data,
 	void *tmp, size_t tmp_len)
 {
 	unsigned logn;
@@ -895,13 +905,13 @@ falcon_verify_finish(const void *sig, size_t sig_len, int sig_type,
 	/*
 	 * Hash message to point.
 	 */
-	shake256_flip(hash_data);
+	prng_flip(hash_data);
 	if (ct) {
 		Zf(hash_to_point_ct)(
-			(inner_shake256_context *)hash_data, hm, logn, atmp);
+			(inner_prng_context *)hash_data, hm, logn, atmp);
 	} else {
 		Zf(hash_to_point_vartime)(
-			(inner_shake256_context *)hash_data, hm, logn);
+			(inner_prng_context *)hash_data, hm, logn);
 	}
 
 	/*
@@ -921,14 +931,14 @@ falcon_verify(const void *sig, size_t sig_len, int sig_type,
 	const void *data, size_t data_len,
 	void *tmp, size_t tmp_len)
 {
-	shake256_context hd;
+	prng_context hd;
 	int r;
 
 	r = falcon_verify_start(&hd, sig, sig_len);
 	if (r < 0) {
 		return r;
 	}
-	shake256_inject(&hd, data, data_len);
+	prng_inject(&hd, data, data_len);
 	return falcon_verify_finish(sig, sig_len, sig_type,
 		pubkey, pubkey_len, &hd, tmp, tmp_len);
 }

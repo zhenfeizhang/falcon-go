@@ -1440,7 +1440,7 @@ Zf(sampler)(void *ctx, fpr mu, fpr isigma)
 
 /* see inner.h */
 void
-Zf(sign_tree)(int16_t *sig, inner_shake256_context *rng,
+Zf(sign_tree)(int16_t *sig, inner_prng_context *rng,
 	const fpr *restrict expanded_key,
 	const uint16_t *hm, unsigned logn, uint8_t *tmp)
 {
@@ -1484,7 +1484,7 @@ Zf(sign_tree)(int16_t *sig, inner_shake256_context *rng,
 
 /* see inner.h */
 void
-Zf(sign_dyn)(int16_t *sig, inner_shake256_context *rng,
+Zf(sign_dyn)(int16_t *sig, inner_prng_context *rng,
 	const int8_t *restrict f, const int8_t *restrict g,
 	const int8_t *restrict F, const int8_t *restrict G,
 	const uint16_t *hm, unsigned logn, uint8_t *tmp)

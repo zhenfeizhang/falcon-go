@@ -130,7 +130,7 @@ do_bench(bench_fun bf, void *ctx, double threshold)
 
 typedef struct {
 	unsigned logn;
-	shake256_context rng;
+	prng_context rng;
 	uint8_t *tmp;
 	size_t tmp_len;
 	uint8_t *pk;
@@ -293,7 +293,7 @@ test_speed_falcon(unsigned logn, double threshold)
 	fflush(stdout);
 
 	bc.logn = logn;
-	if (shake256_init_prng_from_system(&bc.rng) != 0) {
+	if (prng_init_prng_from_system(&bc.rng) != 0) {
 		fprintf(stderr, "random seeding failed\n");
 		exit(EXIT_FAILURE);
 	}

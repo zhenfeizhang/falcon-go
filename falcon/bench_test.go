@@ -10,7 +10,7 @@ import (
 // BenchContext holds context for benchmarks, similar to bench_context in C
 type BenchContext struct {
 	logN      uint
-	rng       *Shake256Context
+	rng       *PRNGContext
 	publicKey []byte
 	privKey   []byte
 	sig       []byte
@@ -21,7 +21,7 @@ type BenchContext struct {
 func setupBenchContext(b *testing.B, logN uint) *BenchContext {
 	bc := &BenchContext{
 		logN: logN,
-		rng:  &Shake256Context{},
+		rng:  &PRNGContext{},
 	}
 
 	if err := bc.rng.InitFromSystem(); err != nil {
@@ -45,6 +45,9 @@ func setupBenchContext(b *testing.B, logN uint) *BenchContext {
 }
 
 func BenchmarkFalcon(b *testing.B) {
+	// Log which PRNG implementation is being used
+	b.Logf("Using %s PRNG", getPRNGName())
+
 	// Test for Falcon-512 (logN=9) and Falcon-1024 (logN=10)
 	for _, logN := range []uint{9, 10} {
 		degree := 1 << logN

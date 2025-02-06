@@ -89,17 +89,16 @@ func Verify(signature, message, publicKey []byte, sigType int) error
 ## Benchmarks
 Performance measured on AMD Ryzen 9 7950X3D running Linux:
 
-```
-                            Falcon-512                Falcon-1024
-Operation                   C        Go              C        Go
-Key Generation (ms)       4.33      4.31          12.94     12.02
-Sign Dynamic (µs)       170.21    169.00         342.45    315.00
-Sign Dynamic CT (µs)    177.11    179.00         352.78    317.00
-Sign Tree (µs)          103.07       -           203.83       -
-Sign Tree CT (µs)       109.76       -           216.83       -
-Verify (µs)              14.85     15.00          30.50     29.00
-Verify CT (µs)           23.94     24.00          51.58     49.00
-```
+| Operation | | Falcon-512 | | | Falcon-1024  | | 
+|-----------|------------|--------------|--------------|------------|--------------|--------------|
+| | C(SHAKE) | Go(SHAKE) | Go(Keccak) | C (SHAKE) | Go(SHAKE) | Go(Keccak) |
+| Key Generation (ms) | 4.33 | 4.13 | 4.05 | 12.94 | 12.58 | 12.57 |
+| Sign Dynamic (µs) | 170.21 | 166.79 | 169.33 | 342.45 | 330.37 | 341.88 |
+| Sign Dynamic CT (µs) | 177.11 | 169.03 | 178.90 | 352.78 | 351.21 | 358.11 |
+| Sign Tree (µs) | 103.07 | - | - | 203.83 | - | - |
+| Sign Tree CT (µs) | 109.76 | - | - | 216.83 | - | - |
+| Verify (µs) | 14.85 | 15.03 | 15.23 | 30.50 | 31.04 | 31.07 |
+| Verify CT (µs) | 23.94 | 25.78 | 25.83 | 51.58 | 50.56 | 50.40 |
 
 Notes:
 - CT = Constant Time operations

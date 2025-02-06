@@ -34,7 +34,7 @@
 /* see inner.h */
 void
 Zf(hash_to_point_vartime)(
-	inner_shake256_context *sc,
+	inner_prng_context *sc,
 	uint16_t *x, unsigned logn)
 {
 	/*
@@ -54,7 +54,7 @@ Zf(hash_to_point_vartime)(
 		uint8_t buf[2];
 		uint32_t w;
 
-		inner_shake256_extract(sc, (void *)buf, sizeof buf);
+		inner_prng_extract(sc, (void *)buf, sizeof buf);
 		w = ((unsigned)buf[0] << 8) | (unsigned)buf[1];
 		if (w < 61445) {
 			while (w >= 12289) {
@@ -69,7 +69,7 @@ Zf(hash_to_point_vartime)(
 /* see inner.h */
 void
 Zf(hash_to_point_ct)(
-	inner_shake256_context *sc,
+	inner_prng_context *sc,
 	uint16_t *x, unsigned logn, uint8_t *tmp)
 {
 	/*
@@ -132,7 +132,7 @@ Zf(hash_to_point_ct)(
 		uint8_t buf[2];
 		uint32_t w, wr;
 
-		inner_shake256_extract(sc, buf, sizeof buf);
+		inner_prng_extract(sc, buf, sizeof buf);
 		w = ((uint32_t)buf[0] << 8) | (uint32_t)buf[1];
 		wr = w - ((uint32_t)24578 & (((w - 24578) >> 31) - 1));
 		wr = wr - ((uint32_t)24578 & (((wr - 24578) >> 31) - 1));

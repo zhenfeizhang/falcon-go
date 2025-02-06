@@ -404,6 +404,26 @@ set_fpu_cw(unsigned x)
 // yyyPQCLEAN-
 
 /* ==================================================================== */
+/* Keccak256 PRNG implementation */
+
+#define KECCAK256_OUTPUT 32
+#define MAX_BUFFER_SIZE 1024  // Adjust based on your needs
+
+typedef struct {
+    uint8_t buffer[MAX_BUFFER_SIZE];  // Input buffer
+    size_t buffer_len;                // Current length of data in buffer
+    uint8_t state[KECCAK256_OUTPUT];  // Current state
+    uint64_t counter;                 // Counter for generating different outputs
+    int finalized;                    // Flag to track if absorption phase is complete
+} inner_keccak256_prng_ctx;
+
+/* Renamed API to match SHAKE naming pattern */
+int inner_keccak256_init(inner_keccak256_prng_ctx *sc);
+int inner_keccak256_inject(inner_keccak256_prng_ctx *sc, const uint8_t *in, size_t len);
+int inner_keccak256_flip(inner_keccak256_prng_ctx *sc);
+int inner_keccak256_extract(inner_keccak256_prng_ctx *sc, uint8_t *out, size_t len);
+
+/* ==================================================================== */
 /*
  * SHAKE256 implementation (shake.c).
  *
@@ -448,6 +468,36 @@ void Zf(i_shake256_extract)(
 // yyyPQCLEAN+0
  */
 // yyyPQCLEAN-
+
+
+/*
+ * PRNG abstraction layer. Selects between Keccak256 and SHAKE256 implementations.
+ */
+
+// Default prng uses SHAKE256
+#ifndef FALCON_PRNG_KECCAK256
+#define FALCON_PRNG_KECCAK256   0
+#endif
+
+/* Select PRNG implementation based on configuration */
+#if FALCON_PRNG_KECCAK256
+typedef inner_keccak256_prng_ctx inner_prng_context;
+
+#define inner_prng_init(sc)               inner_keccak256_init(sc)
+#define inner_prng_inject(sc, in, len)    inner_keccak256_inject(sc, in, len)
+#define inner_prng_flip(sc)           	  inner_keccak256_flip(sc)
+#define inner_prng_extract(sc, out, len)  inner_keccak256_extract(sc, out, len)
+
+#else
+typedef inner_shake256_context inner_prng_context;
+
+#define inner_prng_init(sc)               Zf(i_shake256_init)(sc)
+#define inner_prng_inject(sc, in, len)    Zf(i_shake256_inject)(sc, in, len)
+#define inner_prng_flip(sc)           	  Zf(i_shake256_flip)(sc)
+#define inner_prng_extract(sc, out, len)  Zf(i_shake256_extract)(sc, out, len)
+
+#endif /* FALCON_PRNG_KECCAK256 */
+
 
 /* ==================================================================== */
 /*
@@ -533,7 +583,7 @@ extern const uint8_t Zf(max_sig_bits)[];
  * information to serve as a stop condition on a brute force attack on
  * the hashed message (provided that the nonce value is known).
  */
-void Zf(hash_to_point_vartime)(inner_shake256_context *sc,
+void Zf(hash_to_point_vartime)(inner_prng_context *sc,
 	uint16_t *x, unsigned logn);
 
 /*
@@ -544,7 +594,7 @@ void Zf(hash_to_point_vartime)(inner_shake256_context *sc,
  *
  * tmp[] must have 16-bit alignment.
  */
-void Zf(hash_to_point_ct)(inner_shake256_context *sc,
+void Zf(hash_to_point_ct)(inner_prng_context *sc,
 	uint16_t *x, unsigned logn, uint8_t *tmp);
 
 /*
@@ -804,7 +854,7 @@ typedef struct {
  * Instantiate a PRNG. That PRNG will feed over the provided SHAKE256
  * context (in "flipped" state) to obtain its initial state.
  */
-void Zf(prng_init)(prng *p, inner_shake256_context *src);
+void Zf(prng_init)(prng *p, inner_prng_context *src);
 
 /*
  * Refill the PRNG buffer. This is normally invoked automatically, and
@@ -1067,7 +1117,7 @@ void Zf(poly_merge_fft)(fpr *restrict f,
  * tmp[] must have 64-bit alignment.
  * This function uses floating-point rounding (see set_fpu_cw()).
  */
-void Zf(keygen)(inner_shake256_context *rng,
+void Zf(keygen)(inner_prng_context *rng,
 	int8_t *f, int8_t *g, int8_t *F, int8_t *G, uint16_t *h,
 	unsigned logn, uint8_t *tmp);
 
@@ -1105,7 +1155,7 @@ void Zf(expand_privkey)(fpr *restrict expanded_key,
  * tmp[] must have 64-bit alignment.
  * This function uses floating-point rounding (see set_fpu_cw()).
  */
-void Zf(sign_tree)(int16_t *sig, inner_shake256_context *rng,
+void Zf(sign_tree)(int16_t *sig, inner_prng_context *rng,
 	const fpr *restrict expanded_key,
 	const uint16_t *hm, unsigned logn, uint8_t *tmp);
 
@@ -1126,7 +1176,7 @@ void Zf(sign_tree)(int16_t *sig, inner_shake256_context *rng,
  * tmp[] must have 64-bit alignment.
  * This function uses floating-point rounding (see set_fpu_cw()).
  */
-void Zf(sign_dyn)(int16_t *sig, inner_shake256_context *rng,
+void Zf(sign_dyn)(int16_t *sig, inner_prng_context *rng,
 	const int8_t *restrict f, const int8_t *restrict g,
 	const int8_t *restrict F, const int8_t *restrict G,
 	const uint16_t *hm, unsigned logn, uint8_t *tmp);

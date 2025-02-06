@@ -52,23 +52,21 @@ func TestFalconSignatureLifecycle(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Signature verification failed: %v", err)
 			}
-
-			// Rest of the test remains the same...
 		})
 	}
 }
-func TestShake256(t *testing.T) {
-	// Test SHAKE256 functionality
-	ctx := &Shake256Context{}
+func TestPRNG(t *testing.T) {
+	// Test PRNG functionality
+	ctx := &PRNGContext{}
 
 	// Test system RNG initialization
 	err := ctx.InitFromSystem()
 	if err != nil {
-		t.Fatalf("Failed to initialize SHAKE256 from system: %v", err)
+		t.Fatalf("Failed to initialize PRNG from system: %v", err)
 	}
 
 	// Test seed-based initialization
-	seed := []byte("test seed for SHAKE256")
+	seed := []byte("test seed for PRNG")
 	ctx.InitFromSeed(seed)
 
 	// Test injection and extraction
@@ -88,8 +86,11 @@ func TestShake256(t *testing.T) {
 	ctx.Extract(output2)
 
 	if !bytes.Equal(output1, output2) {
-		t.Fatal("SHAKE256 output not deterministic")
+		t.Fatal("PRNG output not deterministic")
 	}
+
+	// Log which PRNG is being used
+	t.Logf("Using %s PRNG", getPRNGName())
 }
 
 func TestGetLogN(t *testing.T) {

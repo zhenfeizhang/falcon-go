@@ -2212,7 +2212,7 @@ poly_sub_scaled_ntt(uint32_t *restrict F, size_t Flen, size_t Fstride,
 
 #else  // yyyKG_CHACHA20+0
 
-#define RNG_CONTEXT   inner_shake256_context
+#define RNG_CONTEXT   inner_prng_context
 
 /*
  * Get a random 8-byte integer from a SHAKE-based RNG. This function
@@ -2221,7 +2221,7 @@ poly_sub_scaled_ntt(uint32_t *restrict F, size_t Flen, size_t Fstride,
  * a known seed is used.
  */
 static inline uint64_t
-get_rng_u64(inner_shake256_context *rng)
+get_rng_u64(inner_prng_context *rng)
 {
 	/*
 	 * We enforce little-endian representation.
@@ -2236,12 +2236,12 @@ get_rng_u64(inner_shake256_context *rng)
 	 */
 	uint64_t r;
 
-	inner_shake256_extract(rng, (uint8_t *)&r, sizeof r);
+	inner_prng_extract(rng, (uint8_t *)&r, sizeof r);
 	return r;
 #else  // yyyLE+0
 	uint8_t tmp[8];
 
-	inner_shake256_extract(rng, tmp, sizeof tmp);
+	inner_prng_extract(rng, tmp, sizeof tmp);
 	return (uint64_t)tmp[0]
 		| ((uint64_t)tmp[1] << 8)
 		| ((uint64_t)tmp[2] << 16)
@@ -4133,7 +4133,7 @@ poly_small_mkgauss(RNG_CONTEXT *rng, int8_t *f, unsigned logn)
 
 /* see falcon.h */
 void
-Zf(keygen)(inner_shake256_context *rng,
+Zf(keygen)(inner_prng_context *rng,
 	int8_t *f, int8_t *g, int8_t *F, int8_t *G, uint16_t *h,
 	unsigned logn, uint8_t *tmp)
 {
