@@ -1,32 +1,3 @@
-# Build script for the Falcon implementation.
-#
-# ==========================(LICENSE BEGIN)============================
-#
-# Copyright (c) 2017-2019  Falcon Project
-#
-# Permission is hereby granted, free of charge, to any person obtaining
-# a copy of this software and associated documentation files (the
-# "Software"), to deal in the Software without restriction, including
-# without limitation the rights to use, copy, modify, merge, publish,
-# distribute, sublicense, and/or sell copies of the Software, and to
-# permit persons to whom the Software is furnished to do so, subject to
-# the following conditions:
-#
-# The above copyright notice and this permission notice shall be
-# included in all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
-# ===========================(LICENSE END)=============================
-#
-# @author   Thomas Pornin <thomas.pornin@nccgroup.com>
-
 .POSIX:
 
 # =====================================================================
@@ -51,18 +22,21 @@ LIBS = #-lm
 
 # =====================================================================
 
-OBJ = codec.o common.o falcon.o fft.o fpr.o keygen.o rng.o shake.o sign.o vrfy.o
+OBJ = codec.o common.o falcon.o fft.o fpr.o keygen.o rng.o shake.o sign.o vrfy.o keccak_prng.o keccak_tiny.o
 
-all: test_falcon speed
+all: test_falcon speed test_keccak_prng
 
 clean:
-	-rm -f $(OBJ) test_falcon test_falcon.o speed speed.o
+	-rm -f $(OBJ) test_falcon test_falcon.o speed speed.o test_keccak_prng test_keccak_prng.o keccak_prng.o keccak_tiny.o
 
 test_falcon: test_falcon.o $(OBJ)
 	$(LD) $(LDFLAGS) -o test_falcon test_falcon.o $(OBJ) $(LIBS)
 
 speed: speed.o $(OBJ)
 	$(LD) $(LDFLAGS) -o speed speed.o $(OBJ) $(LIBS)
+
+test_keccak_prng: test_keccak_prng.o keccak_prng.o keccak_tiny.o
+	$(LD) $(LDFLAGS) -o test_keccak_prng test_keccak_prng.o keccak_prng.o keccak_tiny.o $(LIBS)
 
 codec.o: codec.c config.h inner.h fpr.h
 	$(CC) $(CFLAGS) -c -o codec.o codec.c
@@ -99,3 +73,12 @@ test_falcon.o: test_falcon.c falcon.h config.h inner.h fpr.h
 
 vrfy.o: vrfy.c config.h inner.h fpr.h
 	$(CC) $(CFLAGS) -c -o vrfy.o vrfy.c
+
+keccak_prng.o: keccak_prng.c keccak_tiny.h
+	$(CC) $(CFLAGS) -c -o keccak_prng.o keccak_prng.c
+
+keccak_tiny.o: keccak_tiny.c keccak_tiny.h
+	$(CC) $(CFLAGS) -c -o keccak_tiny.o keccak_tiny.c
+
+test_keccak_prng.o: test_keccak_prng.c keccak_tiny.h
+	$(CC) $(CFLAGS) -c -o test_keccak_prng.o test_keccak_prng.c

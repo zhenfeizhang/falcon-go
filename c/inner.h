@@ -404,6 +404,26 @@ set_fpu_cw(unsigned x)
 // yyyPQCLEAN-
 
 /* ==================================================================== */
+// keccak prng related functions
+
+#define KECCAK256_OUTPUT 32
+#define MAX_BUFFER_SIZE 1024  // Adjust based on your needs
+
+typedef struct {
+    uint8_t buffer[MAX_BUFFER_SIZE];  // Input buffer
+    size_t buffer_len;                // Current length of data in buffer
+    uint8_t state[KECCAK256_OUTPUT];  // Current state
+    uint64_t counter;                 // Counter for generating different outputs
+    int finalized;                    // Flag to track if absorption phase is complete
+} inner_keccak256_prng_ctx;
+
+int inner_keccak256_prng_init(inner_keccak256_prng_ctx *sc);
+int inner_keccak256_prng_absorb(inner_keccak256_prng_ctx *sc, const uint8_t *in, size_t len);
+int inner_keccak256_prng_finalize(inner_keccak256_prng_ctx *sc);
+int inner_keccak256_prng_squeeze(uint8_t *out, size_t len, inner_keccak256_prng_ctx *sc);
+int inner_keccak256_prng(uint8_t *out, size_t outlen, const uint8_t *in, size_t inlen);
+
+/* ==================================================================== */
 /*
  * SHAKE256 implementation (shake.c).
  *

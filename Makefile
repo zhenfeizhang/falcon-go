@@ -42,6 +42,7 @@ test_c: falcon
 	@echo "Building and running C tests..."
 	cd $(FALCON_C_DIR) && $(CC) $(CFLAGS) -o test_falcon test_falcon.c $(C_OBJECTS)
 	cd $(FALCON_C_DIR) && ./test_falcon
+	cd $(FALCON_C_DIR) && ./test_keccak_prng
 
 # Run Go tests
 test_go: falcon
