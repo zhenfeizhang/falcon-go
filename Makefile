@@ -81,7 +81,7 @@ bench_c: falcon
 
 # Build example
 example: falcon
-	CGO_CFLAGS="-I$(PROJECT_ROOT)/c" \
+	CGO_CFLAGS="-I$(PROJECT_ROOT)/c -DFALCON_PRNG_KECCAK256=1" \
 	CGO_LDFLAGS="-L$(PROJECT_ROOT)/c" \
 	$(GOBUILD) -o examples/falcon-example examples/main.go
 

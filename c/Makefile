@@ -23,12 +23,12 @@ LIBS = #-lm
 
 # =====================================================================
 
-OBJ = codec.o common.o falcon.o fft.o fpr.o keygen.o rng.o shake.o sign.o vrfy.o keccak_prng.o keccak_tiny.o
+OBJ = codec.o common.o falcon.o fft.o fpr.o keygen.o rng.o shake.o sign.o vrfy.o keccak_prng.o keccak256.o
 
 all: test_falcon speed test_prng
 
 clean:
-	-rm -f $(OBJ) test_falcon test_falcon.o speed speed.o test_prng test_prng.o keccak_prng.o keccak_tiny.o
+	-rm -f $(OBJ) test_falcon test_falcon.o speed speed.o test_prng test_prng.o keccak_prng.o keccak256.o
 
 test_falcon: test_falcon.o $(OBJ)
 	$(LD) $(LDFLAGS) -o test_falcon test_falcon.o $(OBJ) $(LIBS)
@@ -36,8 +36,8 @@ test_falcon: test_falcon.o $(OBJ)
 speed: speed.o $(OBJ)
 	$(LD) $(LDFLAGS) -o speed speed.o $(OBJ) $(LIBS)
 
-test_prng: test_prng.o keccak_prng.o keccak_tiny.o
-	$(LD) $(LDFLAGS) -o test_prng test_prng.o keccak_prng.o keccak_tiny.o shake.o $(LIBS)
+test_prng: test_prng.o keccak_prng.o keccak256.o
+	$(LD) $(LDFLAGS) -o test_prng test_prng.o keccak_prng.o keccak256.o shake.o $(LIBS)
 
 codec.o: codec.c config.h inner.h fpr.h
 	$(CC) $(CFLAGS) -c -o codec.o codec.c
@@ -75,11 +75,11 @@ test_falcon.o: test_falcon.c falcon.h config.h inner.h fpr.h
 vrfy.o: vrfy.c config.h inner.h fpr.h
 	$(CC) $(CFLAGS) -c -o vrfy.o vrfy.c
 
-keccak_prng.o: keccak_prng.c keccak_tiny.h
+keccak_prng.o: keccak_prng.c keccak256.h
 	$(CC) $(CFLAGS) -c -o keccak_prng.o keccak_prng.c
 
-keccak_tiny.o: keccak_tiny.c keccak_tiny.h
-	$(CC) $(CFLAGS) -c -o keccak_tiny.o keccak_tiny.c
+keccak256.o: keccak256.c keccak256.h
+	$(CC) $(CFLAGS) -c -o keccak256.o keccak256.c
 
-test_prng.o: test_prng.c keccak_tiny.h
+test_prng.o: test_prng.c keccak256.h
 	$(CC) $(CFLAGS) -c -o test_prng.o test_prng.c
