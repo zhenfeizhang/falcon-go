@@ -12,6 +12,7 @@
  *    - Maintains a 32-byte state derived from input data
  *    - Uses a 64-bit counter for expandable output
  *    - Includes a buffer for accumulating input before finalization
+ *    - Maintains an output buffer to store unused random bytes
  *
  * 2. Operation Phases:
  *    a) Input Phase (before finalization):
@@ -23,7 +24,8 @@
  *       - Locks further input
  *
  *    c) Output Phase (after finalization):
- *       - Generates arbitrary-length output using counter mode
+ *       - Uses buffered output when available to reduce hash operations
+ *       - Generates new blocks using counter mode when buffer is empty
  *       - Each block combines state and counter through Keccak-256
  */
 
@@ -43,6 +45,11 @@ int inner_keccak256_init(inner_keccak256_prng_ctx *sc) {
     sc->buffer_len = 0;
     sc->counter = 0;
     sc->finalized = 0;
+    
+    // Initialize output buffer
+    sc->out_buffer_pos = 0;
+    sc->out_buffer_len = 0;
+    
     return 0;
 }
 
@@ -71,19 +78,17 @@ int inner_keccak256_flip(inner_keccak256_prng_ctx *sc) {
     if (!sc) return -1;
     if (sc->finalized) return -2;
 
-    // No need for domain separation byte as we're using Keccak directly
-    
-    // Initialize Keccak context
     SHA3_CTX keccak_ctx;
     keccak_init(&keccak_ctx);
-    
-    // Process all buffered data
     keccak_update(&keccak_ctx, sc->buffer, sc->buffer_len);
-    
-    // Generate initial state
     keccak_final(&keccak_ctx, sc->state);
 
     sc->finalized = 1;
+    
+    // Reset output buffer
+    sc->out_buffer_pos = 0;
+    sc->out_buffer_len = 0;
+    
     return 0;
 }
 
@@ -95,8 +100,24 @@ int inner_keccak256_extract(inner_keccak256_prng_ctx *sc, uint8_t *out, size_t l
     if (!sc->finalized) return -2;
 
     size_t offset = 0;
+    
+    // First, use any bytes remaining in the output buffer
+    if (sc->out_buffer_len > sc->out_buffer_pos) {
+        size_t available = sc->out_buffer_len - sc->out_buffer_pos;
+        size_t to_copy = (len < available) ? len : available;
+        
+        memcpy(out, sc->out_buffer + sc->out_buffer_pos, to_copy);
+        sc->out_buffer_pos += to_copy;
+        offset += to_copy;
+        
+        // If we've satisfied the request, return early
+        if (offset == len) {
+            return 0;
+        }
+    }
+
+    // Generate additional blocks as needed
     uint8_t block[KECCAK256_OUTPUT + 8];  // State + counter
-    uint8_t squeeze_out[KECCAK256_OUTPUT];
     SHA3_CTX keccak_ctx;
 
     while (offset < len) {
@@ -110,17 +131,22 @@ int inner_keccak256_extract(inner_keccak256_prng_ctx *sc, uint8_t *out, size_t l
         // Generate next block using Keccak-256
         keccak_init(&keccak_ctx);
         keccak_update(&keccak_ctx, block, KECCAK256_OUTPUT + 8);
-        keccak_final(&keccak_ctx, squeeze_out);
+        keccak_final(&keccak_ctx, sc->out_buffer);
+        
+        // Update buffer state
+        sc->out_buffer_len = KECCAK256_OUTPUT;
+        sc->out_buffer_pos = 0;
 
         // Copy output
-        size_t to_copy = len - offset;
-        if (to_copy > KECCAK256_OUTPUT) {
-            to_copy = KECCAK256_OUTPUT;
-        }
-        memcpy(out + offset, squeeze_out, to_copy);
-
+        size_t remaining = len - offset;
+        size_t to_copy = (remaining < KECCAK256_OUTPUT) ? remaining : KECCAK256_OUTPUT;
+        
+        memcpy(out + offset, sc->out_buffer, to_copy);
+        sc->out_buffer_pos = to_copy;
         offset += to_copy;
+        
         sc->counter++;
     }
+    
     return 0;
 }
