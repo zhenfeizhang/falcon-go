@@ -409,13 +409,22 @@ set_fpu_cw(unsigned x)
 #define KECCAK256_OUTPUT 32
 #define MAX_BUFFER_SIZE 1024  // Adjust based on your needs
 
+/**
+ * Context structure for Keccak256 PRNG
+ */
 typedef struct {
     uint8_t buffer[MAX_BUFFER_SIZE];  // Input buffer
-    size_t buffer_len;                // Current length of data in buffer
+    size_t buffer_len;                // Length of data in input buffer
     uint8_t state[KECCAK256_OUTPUT];  // Current state
-    uint64_t counter;                 // Counter for generating different outputs
-    int finalized;                    // Flag to track if absorption phase is complete
+    uint64_t counter;                 // Output counter
+    int finalized;                    // Flag indicating if state is finalized
+
+    // New output buffer fields
+    uint8_t out_buffer[KECCAK256_OUTPUT];  // Buffer for unused random bytes
+    size_t out_buffer_pos;                 // Current position in output buffer
+    size_t out_buffer_len;                 // Number of valid bytes in output buffer
 } inner_keccak256_prng_ctx;
+
 
 /* Renamed API to match SHAKE naming pattern */
 int inner_keccak256_init(inner_keccak256_prng_ctx *sc);
