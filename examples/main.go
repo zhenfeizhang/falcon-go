@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"log"
 
-	"falcon-go/falcon" // Using local module path
+	"github.com/zhenfeizhang/falcon-go/falcon" // Using local module path
 )
 
 func main() {
